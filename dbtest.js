@@ -1,32 +1,50 @@
+var sql = require('mssql');
+var xlsx = require('node-xlsx');
 
-var mssql = require('mssql');
-var user = "sa",
-    password = "sa",
-    server = "localhost",
-    database = "qhtest";
+start();
 
-
-var config = {
-    user: 'sa',
-    password: 'sa',
-    server: '61.164.208.174:33248', // You can use 'localhost\\instance' to connect to named instance
-    database: 'qhtest',
-    options: {
-        encrypt: true // Use this if you're on Windows Azure
-    },
-    pool: {
-        min: 0,
-        idleTimeoutMillis: 3000
-    }
-};
-
-mssql.connect(config).then(function() {
-    new mssql.Request()
-        .query('select * from [dbo].[user]').then(function(recordset) {
-            console.dir(recordset);
-        }).catch(function(err) {
-            console.log(err);
-        })
-})
+function start(){
+	importExcel();
+}
 
 
+function importExcel() {
+	var obj = xlsx.parse('excel/testexcel.xlsx');
+	var excelObj = obj[0].data;
+
+	var dataArr = []
+	for (var i = 0; i < excelObj.length; i++) {
+		var valueArr = [];
+		for (var j = 0; j < excelObj[i].length; j++) {
+
+			if (!excelObj[i][j]) {
+				valueArr.push("''");
+			} else {
+				valueArr.push("'" + excelObj[i][j] + "'");
+			}
+			
+		}
+		dataArr.push('(' + valueArr.join(',') + ')');
+	}
+	var dataStr = dataArr.join(',');
+	connectDB(dataStr);
+}
+
+function connectDB(str) {
+	sql.connect("mssql://qh:qh@127.0.0.1:1433/qhtest")
+		.then(function() {
+			var sqlStr = " insert into [dbo].[component] (id,name,model,quantity) values " + str;
+			new sql.Request()
+				.query(sqlStr)
+				.then(function(recordset) {
+					console.log(recordset);
+				})
+				.catch(function(err) {
+					console.log(err);
+				});
+
+		})
+		.catch(function(err) {
+			console.log(err);
+		});
+}

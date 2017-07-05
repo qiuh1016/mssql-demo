@@ -9,6 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "mssql": "^4.0.4"
+    "mssql": "^4.0.4",
+    "node-xlsx": "^0.7.4"
   }
 }
