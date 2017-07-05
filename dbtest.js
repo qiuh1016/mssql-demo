@@ -1,11 +1,23 @@
 var sql = require('mssql');
 var xlsx = require('node-xlsx');
+var event = require('eventproxy');
+var ep = new event();
 
+var insertValueStrs = [];
 start();
 
 function start(){
 	importExcel();
 }
+
+ep.on('insertOK', function(num) {
+	if(num == insertValueStrs.length - 1) {
+		console.log('insert all ok');
+	} else {
+		num++;
+		connectDB(num);
+	}
+})
 
 
 function importExcel() {
@@ -26,20 +38,40 @@ function importExcel() {
 		}
 		dataArr.push('(' + valueArr.join(',') + ')');
 	}
-	var dataStr = dataArr.join(',');
-	connectDB(dataStr);
+
+
+	// insert by page
+	var pageCount = 1000;
+	var page = Math.ceil(dataArr.length / pageCount); 
+	for (var p = 0; p < page; p++) {
+		var start = p * pageCount;
+		var end;
+		if (p == page - 1) {
+			end = dataArr.length;
+		} else {
+			end = (p + 1) * pageCount;
+		}
+		var newArr = dataArr.slice(start, end);
+		var newArrStr = newArr.join(',');
+		insertValueStrs.push(newArrStr);
+	}
+
+	connectDB(0);
 }
 
-function connectDB(str) {
+function connectDB(num) {
 	sql.connect("mssql://qh:qh@127.0.0.1:1433/qhtest")
 		.then(function() {
-			var sqlStr = " insert into [dbo].[component] (id,name,model,quantity) values " + str;
+			var sqlStr = " insert into [dbo].[component] (id,name,model,quantity) values " + insertValueStrs[num];
 			new sql.Request()
 				.query(sqlStr)
 				.then(function(recordset) {
-					console.log(recordset);
+					sql.close();
+					console.log(num + ' ok');
+					ep.emit('insertOK', num);
 				})
 				.catch(function(err) {
+					sql.close();
 					console.log(err);
 				});
 

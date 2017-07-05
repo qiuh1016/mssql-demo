@@ -9,6 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "eventproxy": "^1.0.0",
     "mssql": "^4.0.4",
     "node-xlsx": "^0.7.4"
   }
